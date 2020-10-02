@@ -296,7 +296,7 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        return self.startingPosition,()
+        return self.startingPosition, ()
         util.raiseNotDefined()
 
     def isGoalState(self, state):
@@ -331,17 +331,17 @@ class CornersProblem(search.SearchProblem):
 
             "*** YOUR CODE HERE ***"
             x, y = state[0]
-            visited =state[1]
+            visited = state[1]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
-            hitsWall = self.walls[nextx][nexty]
-            if not hitsWall:
+
+            if not self.walls[nextx][nexty]:
                 nextState = (nextx, nexty)
-                if nextState in self.corners and nextState not in visited:
+                if nextState in self.corners and nextState not in state[1]:
                     visited += (nextState,)
                 successors.append(((nextState, visited), action, 1))
 
-        self._expanded += 1 # DO NOT CHANGE
+        self._expanded += 1  # DO NOT CHANGE
         return successors
 
     def getCostOfActions(self, actions):
@@ -375,11 +375,21 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    heuristic = 0
-    for corner in set(corners) ^ set(state[1]):
-        heuristic = max(heuristic, mazeDistance(corner, state[0], problem.startingGameState))
+    from util import manhattanDistance
 
-    return heuristic
+    result = 0
+
+    pos = state[0]
+    remained_corner = [corner for corner in corners if corner not in state[1]]
+
+    while len(remained_corner) > 0:
+        distance_array = [manhattanDistance(pos, corner) for corner in remained_corner]
+        distance_min = min(distance_array)
+        distance_index = distance_array.index(distance_min)
+        pos = remained_corner[distance_index]
+        remained_corner.pop(distance_index)
+        result += distance_min
+    return result  # Default to trivial solution
 
 
 class AStarCornersAgent(SearchAgent):
@@ -474,7 +484,17 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    heuristic = 0
+    myFood = foodGrid.asList()
+    distance = []
+    if len(myFood) == 0:
+        return 0
+
+    for x, y in myFood:
+        pos = (x , y)
+        distance.append(mazeDistance(position, pos, problem.startingGameState))
+
+    return max(distance)
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -505,19 +525,19 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
+
+        return search.breadthFirstSearch(problem)
+
         util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
     A search problem for finding a path to any food.
-
     This search problem is just like the PositionSearchProblem, but has a
     different goal test, which you need to fill in below.  The state space and
     successor function do not need to be changed.
-
     The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
     inherits the methods of the PositionSearchProblem.
-
     You can use this search problem to help you fill in the findPathToClosestDot
     method.
     """
@@ -538,7 +558,12 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         The state is Pacman's position. Fill this in with a goal test that will
         complete the problem definition.
         """
-        x,y = state
+
+        _, goal = min([(util.manhattanDistance(state, goal), goal) for goal in self.food.asList()])
+        if state == goal:
+            return True
+        else:
+            return False
 
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
